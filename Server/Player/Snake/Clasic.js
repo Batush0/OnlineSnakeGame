@@ -1,12 +1,6 @@
-const TILE_WIDTH = 32;
-const TILE_HEIGHT = 32;
-
-const CANVAS_WIDTH = TILE_WIDTH * 17;//30;//10;
-const CANVAS_HEIGHT = TILE_HEIGHT * 17;//30;//8; 
-
 exports.Player = class Player{
 
-    constructor(game,id,name){
+    constructor(game,id,name,TILE_WIDTH,TILE_HEIGHT,CANVAS_WIDTH,CANVAS_HEIGHT){
   
       this.coordinates = [{x:0,y:0,direction:'RIGHT'}] 
       this.appleCoordinates = undefined;
@@ -21,9 +15,11 @@ exports.Player = class Player{
       this.id = id;
 
       this.name = name
-      // this.token = token;
 
-      // this.type='ghost';
+      this.TILE_WIDTH = TILE_WIDTH 
+      this.TILE_HEIGHT = TILE_HEIGHT
+      this.CANVAS_WIDTH = CANVAS_WIDTH
+      this.CANVAS_HEIGHT = CANVAS_HEIGHT 
     }
   
     
@@ -49,11 +45,11 @@ exports.Player = class Player{
           console.log('u hitted')
         }
       };
-      if(head.x > CANVAS_WIDTH/TILE_WIDTH -1) head.x = 0;
-      if(head.x < 0) head.x = CANVAS_WIDTH/TILE_WIDTH -1;
+      if(head.x > this.CANVAS_WIDTH/this.TILE_WIDTH -1) head.x = 0;
+      if(head.x < 0) head.x = this.CANVAS_WIDTH/this.TILE_WIDTH -1;
   
-      if(head.y > CANVAS_HEIGHT/TILE_HEIGHT -1) head.y = 0;
-      if(head.y < 0) head.y = CANVAS_HEIGHT/TILE_HEIGHT -1;
+      if(head.y > this.CANVAS_HEIGHT/this.TILE_HEIGHT -1) head.y = 0;
+      if(head.y < 0) head.y = this.CANVAS_HEIGHT/this.TILE_HEIGHT -1;
     }
   
     move = () => {
@@ -84,7 +80,7 @@ exports.Player = class Player{
     }
   
     calculateCoord = (value) => {
-      return (Math.floor(value/TILE_WIDTH)*TILE_WIDTH)
+      return (Math.floor(value/this.TILE_WIDTH)*this.TILE_WIDTH)
     }
   
     eate = () => {

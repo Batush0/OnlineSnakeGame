@@ -1,5 +1,5 @@
 const mysql = require('mysql');
-const {Xss} = require('../xss-check.js');
+const {Xss} = require('../useful/xss-check.js');
 require('dotenv').config();
 const {verifyPasswordWithHash} = require('./cryptology.js');
 

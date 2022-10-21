@@ -1,4 +1,3 @@
-
 const express = require('express');
 const app = express();
 const port = '8180';
@@ -23,9 +22,9 @@ const io = require('socket.io')(8080,{
     origin:['http://localhost:3000','https://admin.socket.io'],
   },
 })
-const {Xss} = require('./xss-check.js');
-const {Game} = require('./Game.js'); 
-const {generateToken} = require('./cryptology.js');
+const {Xss} = require('./useful/xss-check.js');
+const {Games} = require('./Game.js'); 
+const {generateToken} = require('./useful/cryptology.js');
 
 server = app.listen(port,()=>console.log(`${port} on fire maaan`));
 
@@ -105,7 +104,7 @@ app.post('/create',(req,res)=>{
       '192.168.1.101'     //TODO* req.ip
     ).then(data=>res.status(200).send(data)).catch(data=>res.status(500).send(data))
 
-    const game = new Game(io)         //TODO! Mod yönetimi
+    const game = Games[req.body.gameMode]
       
     game.roomId = roomId;
     game.owner = req.body.username
@@ -140,12 +139,12 @@ app.post('/join',(req,res)=>{
 
 //JOINING RANDOM PUPLIC ROOM
 app.post('/joinPublic',(req,res)=>{
-  
+    //TODO*
 })
 
 app.get('/lobi/getPlayers/:room_id',(req,res)=>{
   
-   storage.getPlayerList(req.params.room_id).then(data=>res.send(data))
+  storage.getPlayerList(req.params.room_id).then(data=>res.send(data))
 })
 
 app.get('/checkState',(req,res)=>{
