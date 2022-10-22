@@ -83,7 +83,6 @@ io.use((socket, next) => {
 app.post('/register',async(req,res)=>{
  
   try {
-    console.log('here')
     const username = req.body.username
     const password = req.body.password
 
@@ -100,25 +99,29 @@ app.post('/register',async(req,res)=>{
 
 //CREATİNG ROOM
 app.post('/create',(req,res)=>{
- 
   try {
-    const gameMode = GameMode[req.body.gameMode] 
-    if(!gameMode) throw new Error("Game mode couldn't fund")
+    const gameMode = Games[0][req.body.gameMode]  //TODO game from req.body
+    if(!gameMode) throw new Error("Game type couldn't found")
+
+    const game = Games[0][req.body.gameMode]  //TODO game from req.body
+    var roomId = undefined;
 
     storage.createRoom(
       req.body.username,
       req.body.password,
-      gameMode,
+      req.body.gameMode,
+      0, //game
       req.body.privacy,
       req.body.playerLimit,
       req.body.duration,
       '192.168.1.101'     //TODO* req.ip
-    ).then(data=>res.status(200).send(data)).catch(data=>res.status(500).send(data))
+    ).then(data=>{
+      res.status(200).send(data)
+      roomId = data.roomId
+    }).catch(data=>res.status(500).send(data))
 
-    const game = Games[req.body.gameMode](1)
-    //Player,TILE_HEIGHT,TILE_WIDTH,CANVAS_HEIGHT,CANVAS_WIDTH,owner,roomId,onPlay,playerLimit,private,duration,startAt
     game.roomId = roomId;
-    game.owner = req.body.username
+    game.owner = Xss(req.body.username)
     game.playerLimit = req.body.playerLimit
     game.private = req.body.privacy
     game.duration = req.body.duration

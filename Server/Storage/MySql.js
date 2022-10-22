@@ -105,13 +105,13 @@ class MySql extends Storage{
     }
     generateRoomID(){
         const generated = Math.floor(Math.random()*10**6)
-        con.query(`select room_id from game where room_id = ${generated}`,(err,result)=>{
+        this.connection.query(`select room_id from game where room_id = ${generated}`,(err,result)=>{
             if(result.length)return -1
         })
         return generated
     }
 
-    createRoom(username,password,gameMode,privacy,playerLimit,duration,ip){
+    createRoom(username,password,gameMode,game,privacy,playerLimit,duration,ip){
         return new Promise((resolve,reject)=>{
             try{
                 
@@ -119,21 +119,22 @@ class MySql extends Storage{
                 
                 this.isPlayerMemborOfRoom(username).catch((err)=>{throw err})
           
-                var roomId = generateRoomID()
+                var roomId = this.generateRoomID()
                 while(true){
                     if(roomId > 0) break
-                    roomId = generateRoomID()
+                    roomId = this.generateRoomID()
                 }
+                
 
-              
                 this.connection.query(`
-                    insert into game(mode,private,player_limit,duration,room_id) values(
-                    ${gameMode},
+                    insert into game(mode,game,private,player_limit,duration,room_id) values(
+                    ${Xss(gameMode)},
+                    ${Xss(game)},
                     ${Xss(privacy)},
                     ${Xss(playerLimit)},
                     ${Xss(duration)},
                     ${roomId});
-                    insert into executives(user_name,room,transfer_by) values(
+                    insert into executives(user_exe,room_id,transfer_by) values(
                       '${Xss(username)}',
                       ${roomId},
                       'no one');
@@ -144,10 +145,10 @@ class MySql extends Storage{
                       INET_ATON('${ip}')
                     );
                     `,(err,result)=>{
-                        if(err) throw new Error('gone wrong , try later')
+                        if(err) throw err//throw new Error('gone wrong , try later')
+                        resolve({roomId:roomId})
                 })
 
-                resolve({roomId:roomId})
                 
             }catch(error){
               console.log(error)
@@ -269,7 +270,8 @@ class MySql extends Storage{
     }
     isPlayerMemborOfRoom(username){
         return new Promise((resolve,reject)=>{
-            this.connection.query(`select * from player where user_name = ${Xss(username)}`,(err,res)=> {
+            this.connection.query(`select * from player where user_name = '${Xss(username)}'`,(err,res)=> {
+                if(err)return reject(err.message)
                 if(res.length)reject('zaten bir odadasın')
             })
         })
