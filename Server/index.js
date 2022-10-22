@@ -13,39 +13,49 @@ app.use(device.capture());
 
 process.on('uncaughtException', function (err) {
   console.log('\n\n\n\n')
-  console.error(err);
+  console.error(err); 
   console.log('\n\n\n\n')
 });
+
 
 const io = require('socket.io')(8080,{
   cors:{
     origin:['http://localhost:3000','https://admin.socket.io'],
   },
 })
-const {Xss} = require('./useful/xss-check.js');
-const {Games} = require('./Game.js'); 
-const {generateToken} = require('./useful/cryptology.js');
 
 server = app.listen(port,()=>console.log(`${port} on fire maaan`));
 
-const {Storages} = require('./Storage/Storage.js') 
-const storage = Storages.MySql
+require('dotenv').config();
+const {Xss} = require('./useful/xss-check.js');
+const {generateToken} = require('./useful/cryptology.js');
+
+const {Storages} = require('./Storage/Storages.js')
+const storage =  Storages.MySql
+
+const {Games} = require('./Games/games'); 
+
 
 const games = []
 
+
 storage.getDataAfterShutDown().then(data=>{
   data.forEach(gameObj=>{
-    const game = new Game()
+    const game = Games[gameObj.game][gameObj.mode] 
     game.playerLimit = gameObj.player_limit;
     game.private = gameObj.private;
     game.duration = gameObj.duration;
     game.roomId = gameObj.room_id;
-    game.onPlay = gameObj.onPlay;
+    game.onPlay = gameObj.on_play;
     game.mode = gameObj.mode;
+    
     game.owner = gameObj.owner;
-    gameObj.players.forEach(playerObj=>{
-      game.addPlayer(playerObj.socket_id,playerObj.username)
-    })
+    console.log(gameObj)
+    
+    // gameObj.players.forEach(playerObj=>{
+    //   game.addPlayer(playerObj.socket_id,playerObj.username)
+    // })
+    throw 'asd'
     games.push(game)
   })
 })
@@ -73,6 +83,7 @@ io.use((socket, next) => {
 app.post('/register',async(req,res)=>{
  
   try {
+    console.log('here')
     const username = req.body.username
     const password = req.body.password
 
@@ -104,8 +115,8 @@ app.post('/create',(req,res)=>{
       '192.168.1.101'     //TODO* req.ip
     ).then(data=>res.status(200).send(data)).catch(data=>res.status(500).send(data))
 
-    const game = Games[req.body.gameMode]
-      
+    const game = Games[req.body.gameMode](1)
+    //Player,TILE_HEIGHT,TILE_WIDTH,CANVAS_HEIGHT,CANVAS_WIDTH,owner,roomId,onPlay,playerLimit,private,duration,startAt
     game.roomId = roomId;
     game.owner = req.body.username
     game.playerLimit = req.body.playerLimit

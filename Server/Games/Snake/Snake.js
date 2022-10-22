@@ -1,7 +1,5 @@
-const {_Player} = require('../../Player/Snake/Clasic.js')
-
 exports.SnakeGame = class SnakeGame{
-    constructor(Player,TILE_HEIGHT,TILE_WIDTH,CANVAS_HEIGHT,CANVAS_WIDTH,owner,roomId,onPlay,playerLimit,private,duration,startAt){
+    constructor(Player,TILE_HEIGHT,TILE_WIDTH,CANVAS_HEIGHT,CANVAS_WIDTH,owner,roomId,onPlay,playerLimit,isprivate,duration,startAt){
         this.TILE_WIDTH = TILE_WIDTH || 32;
         this.TILE_HEIGHT = TILE_HEIGHT|| 32;
 
@@ -16,7 +14,7 @@ exports.SnakeGame = class SnakeGame{
         this.onPlay = onPlay || false;
 
         this.playerLimit = playerLimit || 5
-        this.private = private || false 
+        this.private = isprivate || false 
 
         //this.condition = false;
         this.duration = duration || 0;
@@ -33,10 +31,3 @@ exports.SnakeGame = class SnakeGame{
 }
 
 
-
-export const Games = {
-    0:()=>{ //clasic
-        const {Clasic} = require('./Clasic.js')
-        return new Clasic()
-    }
-}

@@ -1,6 +1,8 @@
+//const {SnakeGame} = require('./Snake')
+
 exports.Clasic = class SnakeGame {
     constructor(props){
-        super(...props)
+      //super(props)
     }
 
     spawnApple(username){

@@ -15,10 +15,4 @@ class Storage{
     generateRoomID(){}
 }
 
-
-export const Storages = {
-    MySql:()=>{
-        const {MySql} = require('./MySql.js')
-        return new MySql()
-    }
-}
+module.exports.Storage = Storage

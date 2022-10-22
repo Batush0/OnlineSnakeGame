@@ -1,9 +1,9 @@
 const mysql = require('mysql');
 const {Xss} = require('../useful/xss-check.js');
-require('dotenv').config();
-const {verifyPasswordWithHash} = require('./cryptology.js');
+const {verifyPasswordWithHash} = require('../useful/cryptology.js');
+const {Storage} = require('./Storage.js')
 
-exports.MySql = class MySql extends Storage{
+class MySql extends Storage{
     constructor(){
         super()
         this.connection = mysql.createConnection({
@@ -13,8 +13,8 @@ exports.MySql = class MySql extends Storage{
             database: process.env.MYSQL_DATABASE,
             multipleStatements: true
           });
-        
-          con.connect(function(err) {
+         
+          this.connection.connect(function(err) {
             if (err) {
                 console.log(err)
                 throw err;
@@ -27,22 +27,18 @@ exports.MySql = class MySql extends Storage{
                 this.connection.query(`select * from game`,(errGame,resGame)=>{
                     if(errGame) throw errGame
                     var data = []
-                    resGame[0].forEach(gameObj => {
-                        game = {}
-                        game.playerLimit = gameObj.player_limit
-                        game.private = gameObj.private
-                        game.duration = gameObj.duration
-                        game.roomId = gameObj.room_id
-                        game.onPlay = gameObj.onPlay
-                        game.mode = gameObj.mode
-                        this.connection.query(`select socket_id , user_name from player where room_id = ${gameObj.room_id}`,(errPlayer,resPlayer)=>{
+                    resGame.forEach(gameObj => {
+                        var game = gameObj 
+
+                        this.connection.query(`select socket_id , user_name from player where room_id = ${gameObj.room_id}`,async(errPlayer,resPlayer)=>{
                             if(errPlayer) throw errPlayer
                             var players = []
-                            resPlayer[0].forEach(playerObj => {
+                            resPlayer.forEach(playerObj => {
                                 players.push({socket_id:playerObj.socket_id,username:playerObj.user_name})
                             })
                             game.players = players
                         });
+
                         this.connection.query(`select user_name from executives where room = ${gameObj.room_id}`,(errExecutives,resultExecutives)=>{
                             if(errExecutives) throw errExecutives
                             game.owner = resultExecutives[0].user_name
@@ -66,7 +62,7 @@ exports.MySql = class MySql extends Storage{
                 })
           
                 this.connection.query(`delete from game where room_id = if(
-                (select count(*) from first_online_game.player where room_id = (select room_id from player where socket_id = '${socket_id}' limit 1)) = 0,(select room_id from player where socket_id = '${socket_id}' limit 1),null)`,(err,result)=>{
+                (select count(*) from player where room_id = (select room_id from player where socket_id = '${socket_id}' limit 1)) = 0,(select room_id from player where socket_id = '${socket_id}' limit 1),null)`,(err,result)=>{
                   if(err)throw err
                 })
 
@@ -119,6 +115,7 @@ exports.MySql = class MySql extends Storage{
                 
                 this.userAuth(username,password).catch(function(err){throw err.data}) //might be mess
                 
+                this.isPlayerMemborOfRoom(username).catch((err)=>{throw err})
           
                 var roomId = generateRoomID()
                 while(true){
@@ -128,17 +125,17 @@ exports.MySql = class MySql extends Storage{
 
               
                 this.connection.query(`
-                    insert into first_online_game.game(mode,private,player_limit,duration,room_id) values(
+                    insert into game(mode,private,player_limit,duration,room_id) values(
                     ${gameMode},
                     ${Xss(privacy)},
                     ${Xss(playerLimit)},
                     ${Xss(duration)},
                     ${roomId});
-                    insert into first_online_game.executives(user_name,room,transfer_by) values(
+                    insert into executives(user_name,room,transfer_by) values(
                       '${Xss(username)}',
                       ${roomId},
                       'no one');
-                    insert into first_online_game.player(user_name,room_id,socket_id,ip_address) values(
+                    insert into player(user_name,room_id,socket_id,ip_address) values(
                       '${Xss(username)}',
                       ${roomId},
                       000,
@@ -161,25 +158,22 @@ exports.MySql = class MySql extends Storage{
             try {
                 this.userAuth(username,password).catch(data=>{throw new Error(data)})
 
-                this.connection.query(`select * from first_online_game.player where user_name = '${Xss(username)}'`,(err,result)=>{
-                    if(err) throw err;
-                    if(result.length > 0){throw new Error({message:'zaten bir odadasın'})}
+                this.isPlayerMemborOfRoom(username).catch((err)=>{throw err})
 
-                    this.connection.query(`select * from first_online_game.game where room_id = ${Xss(roomId)} and on_play = false`,(errorGame,resultGame)=>{
-                        if(errorGame)throw errorGame
-                        if(!resultGame[0])throw new Error({message:'oda uygun değil'})
+                this.connection.query(`select * from game where room_id = ${Xss(roomId)} and on_play = false`,(errorGame,resultGame)=>{
+                    if(errorGame)throw errorGame
+                    if(!resultGame[0])throw new Error({message:'oda uygun değil'})
 
-                        this.connection.query(`select * from first_online_game.player where room_id = ${Xss(roomId)}`,(errPlayer,resultPlayer)=>{
-                            if(errPlayer) throw errPlayer;
-                            if(resultPlayer.length >= resultGame[0].player_limit)throw new Error({message:'oda dolu'})
-                            this.connection.query(`insert into first_online_game.player(user_name,room_id,ip_address,device) values(
-                                '${Xss(username)}',
-                                ${resultGame[0].room_id},
-                                INET_ATON('${ip}'),
-                                '${device}')`,(errGamer,resultGamer)=>{
-                                    if(errGamer) throw errGamer
-                                    resolve({message:'başarıyla odaya katılma gerçekleşti',roomURL:roomId})
-                            })
+                    this.connection.query(`select * from player where room_id = ${Xss(roomId)}`,(errPlayer,resultPlayer)=>{
+                        if(errPlayer) throw errPlayer;
+                        if(resultPlayer.length >= resultGame[0].player_limit)throw new Error({message:'oda dolu'})
+                        this.connection.query(`insert into player(user_name,room_id,ip_address,device) values(
+                            '${Xss(username)}',
+                            ${resultGame[0].room_id},
+                            INET_ATON('${ip}'),
+                            '${device}')`,(errGamer,resultGamer)=>{
+                                if(errGamer) throw errGamer
+                                resolve({message:'başarıyla odaya katılma gerçekleşti',roomURL:roomId})
                         })
                     })
                 })
@@ -194,7 +188,7 @@ exports.MySql = class MySql extends Storage{
     getPlayerList(room_id){
         return new Promise((resolve)=>{
             try {
-                this.connection.query(`select user_name from first_online_game.player where room_id = ${Xss(room_id)}`,(err,result)=>{
+                this.connection.query(`select user_name from player where room_id = ${Xss(room_id)}`,(err,result)=>{
                   if(err) throw err
                   resolve(JSON.parse(JSON.stringify(result)))
                 })
@@ -207,7 +201,7 @@ exports.MySql = class MySql extends Storage{
         return new Promise((resolve,reject)=>{
             try {
                 this.userAuth(username,password).catch(err=>{throw err})
-                this.connection.query(`select * from first_online_game.player where user_name = '${Xss(username)}'`,(err,result)=>{
+                this.connection.query(`select * from player where user_name = '${Xss(username)}'`,(err,result)=>{
                     if (err) throw err
                     if(result[0]) return resolve({isPlayer:true})
                     return resolve({isPlayer:false})
@@ -237,8 +231,8 @@ exports.MySql = class MySql extends Storage{
         return new Promise((resolve)=>{
             try { 
                 this.userAuth(username,password).catch(error=>{throw error})
-                this.connection.query(`update first_online_game.player set socket_id = '${Xss(socket_id)}' where user_name = '${Xss(username)}' `,(err,result)=>{if(err)throw err})
-                this.connection.query(`select room_id from first_online_game.player where user_name='${username}'`,(err,res)=>{
+                this.connection.query(`update player set socket_id = '${Xss(socket_id)}' where user_name = '${Xss(username)}' `,(err,result)=>{if(err)throw err})
+                this.connection.query(`select room_id from player where user_name='${username}'`,(err,res)=>{
                     if(err)throw err
                     if(res[0]) resolve(res[0].room_id)  
                 })
@@ -253,12 +247,12 @@ exports.MySql = class MySql extends Storage{
                 this.userAuth(username,password).catch(dataa=>{throw dataa})
           
                 
-                this.connection.query(`select room_id from first_online_game.player where user_name = '${Xss(username)}'`,(er,res)=>{
+                this.connection.query(`select room_id from player where user_name = '${Xss(username)}'`,(er,res)=>{
                     if(er) throw er
-                    this.connection.query(`select * from first_online_game.executives where room = ${res[0].room_id}`,(err,result)=>{
+                    this.connection.query(`select * from executives where room = ${res[0].room_id}`,(err,result)=>{
                         if(err) throw err
                         if(res[0]){
-                        this.connection.query(`update first_online_game.game set on_play = 1 where room_id = ${res[0].room_id}`,(err,result)=>{
+                        this.connection.query(`update game set on_play = 1 where room_id = ${res[0].room_id}`,(err,result)=>{
                             if(err) throw err
                         })
                         resolve(res[0].room_id)
@@ -271,5 +265,13 @@ exports.MySql = class MySql extends Storage{
               }
         })
     }
-    isPlayerMemborOfRoom(username){} //TODO* önemli değildi
+    isPlayerMemborOfRoom(username){
+        return new Promise((resolve,reject)=>{
+            this.connection.query(`select * from player where user_name = ${Xss(username)}`,(err,res)=> {
+                if(res.length)reject('zaten bir odadasın')
+            })
+        })
+    }
 }
+
+module.exports.mysql = MySql
