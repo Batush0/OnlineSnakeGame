@@ -1,8 +1,8 @@
-//const {SnakeGame} = require('./Snake')
+const {SnakeGame} = require('./Snake')
 
-exports.Clasic = class SnakeGame {
+exports.Clasic = class Clasic extends SnakeGame{
     constructor(props){
-      //super(props)
+      super(props)
     }
 
     spawnApple(username){

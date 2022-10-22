@@ -22,44 +22,41 @@ class MySql extends Storage{
         });
     }
 
-
-    getDataAfterShutDown(){
+     getDataAfterShutDown(){
         return new Promise((resolve,reject)=>{
             try {
-                this.connection.query(`select * from game`,(errGame,resGame)=>{
-                    var data = []
-                    if(errGame) throw errGame
-                    resGame.forEach(gameObj => {
-
-                        //* EK VERİLER + SORUN ==>
-                        //? YAZDIRILACAK VERİLERİ GÖNDERME İŞLEMİNDEN SONRA İŞLENİYOR 
-                        this.connection.query(`select socket_id , user_name from player where room_id = ${gameObj.room_id}`,async(errPlayer,resPlayer)=>{
-                            if(errPlayer) throw errPlayer
-                            var players = []
-                            resPlayer.forEach(playerObj => {
-                                players.push({socket_id:playerObj.socket_id,username:playerObj.user_name})
-                            })
-                            gameObj.players = players
-                        });
-
-                        //* AYNI PROBLEM
-                        this.connection.query(`select user_name from executives where room = ${gameObj.room_id}`,(errExecutives,resultExecutives)=>{
-                            if(errExecutives) throw errExecutives
-                            gameObj.owner = resultExecutives[0].user_name
-                        })
-
-                        data.push(gameObj)
-                    })
-                    resolve(data) //* <== YAZDIRILACAK VERİLERİ GÖNDERME
-                });
+                this.connection.query('SELECT * FROM player , game , executives  where game.room_id = player.room_id and game.room_id = executives.room_id',(er,res)=>{
+                    var gameObj = {}
+                    res.forEach(element => {
+                        if(!gameObj[element.room_id]){
+                            var obj = {}
+                            obj.private = element.private
+                            obj.duration = element.duration
+                            obj.room_id = element.room_id
+                            obj.on_play = element.on_play
+                            obj.mode = element.mode
+                            obj.game = element.game
+                            obj.socket_id = element.socket_id
+                            obj.player_limit = element.player_limit
+                            obj.owner = element.transfer_to ? undefined : element.user_exe   //? çalışmayabilir  //TODO : denenecek
+                            obj.players = [{socket_id:element.socket_id,username:element.user_name}]
+                            gameObj[element.room_id] = obj
+                        }
+                        else{
+                            gameObj[element.room_id].players.push({socket_id:element.socket_id,username:element.user_name})
+                        }
+                    }); 
+                    resolve(gameObj)
+                })
             } 
-            catch (error) {
+            catch (error) { 
                 console.log(error)
                 reject()
             }
 
         })
     }
+
     onDisconnect(socket_id){
         return new Promise((resolve,reject)=>{
             try {

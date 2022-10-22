@@ -1,5 +1,6 @@
+const {Player} = require('../../Player/Snake/Clasic')
 exports.SnakeGame = class SnakeGame{
-    constructor(Player,TILE_HEIGHT,TILE_WIDTH,CANVAS_HEIGHT,CANVAS_WIDTH,owner,roomId,onPlay,playerLimit,isprivate,duration,startAt){
+    constructor(_Player = Player,TILE_HEIGHT,TILE_WIDTH,CANVAS_HEIGHT,CANVAS_WIDTH,owner,roomId,onPlay,playerLimit,isprivate,duration,startAt){
         this.TILE_WIDTH = TILE_WIDTH || 32;
         this.TILE_HEIGHT = TILE_HEIGHT|| 32;
 
@@ -20,7 +21,7 @@ exports.SnakeGame = class SnakeGame{
         this.duration = duration || 0;
         this.startAt = startAt || Date.now();
 
-        this.Player = Player || _Player
+        this.Player = _Player
 
     }
     spawnApple(username){}

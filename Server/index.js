@@ -40,10 +40,9 @@ const games = []
 
 
 storage.getDataAfterShutDown().then(data=>{
-  data.forEach(gameObj=>{
-    console.log(gameObj) //* <==  YAZDIRMA 
-
-
+  Object.keys(data).forEach(obj=>{
+    const gameObj = data[obj]
+    
     const game = Games[gameObj.game][gameObj.mode] 
     game.playerLimit = gameObj.player_limit;
     game.private = gameObj.private;
@@ -54,10 +53,9 @@ storage.getDataAfterShutDown().then(data=>{
 
     game.owner = gameObj.owner;
     
-    // gameObj.players.forEach(playerObj=>{
-    //   game.addPlayer(playerObj.socket_id,playerObj.username)
-    // })
-    throw 'asd'
+    gameObj.players.forEach(playerObj=>{
+      game.addPlayer(playerObj.socket_id,playerObj.username)
+    })
     games.push(game)
   })
 })
