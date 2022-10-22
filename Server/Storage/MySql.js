@@ -21,31 +21,36 @@ class MySql extends Storage{
             }
         });
     }
+
+
     getDataAfterShutDown(){
         return new Promise((resolve,reject)=>{
             try {
                 this.connection.query(`select * from game`,(errGame,resGame)=>{
-                    if(errGame) throw errGame
                     var data = []
+                    if(errGame) throw errGame
                     resGame.forEach(gameObj => {
-                        var game = gameObj 
 
+                        //* EK VERİLER + SORUN ==>
+                        //? YAZDIRILACAK VERİLERİ GÖNDERME İŞLEMİNDEN SONRA İŞLENİYOR 
                         this.connection.query(`select socket_id , user_name from player where room_id = ${gameObj.room_id}`,async(errPlayer,resPlayer)=>{
                             if(errPlayer) throw errPlayer
                             var players = []
                             resPlayer.forEach(playerObj => {
                                 players.push({socket_id:playerObj.socket_id,username:playerObj.user_name})
                             })
-                            game.players = players
+                            gameObj.players = players
                         });
 
+                        //* AYNI PROBLEM
                         this.connection.query(`select user_name from executives where room = ${gameObj.room_id}`,(errExecutives,resultExecutives)=>{
                             if(errExecutives) throw errExecutives
-                            game.owner = resultExecutives[0].user_name
+                            gameObj.owner = resultExecutives[0].user_name
                         })
-                        data.push(game)
+
+                        data.push(gameObj)
                     })
-                    resolve(data)
+                    resolve(data) //* <== YAZDIRILACAK VERİLERİ GÖNDERME
                 });
             } 
             catch (error) {
